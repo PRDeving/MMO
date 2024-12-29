@@ -4,15 +4,13 @@
             "name": "Linux",
             "includePath": [
                 "${workspaceFolder}/**",
-                "${workspaceFolder}/corelib/include",
-                "${workspaceFolder}/corelib/external/enet/include",
                 "${workspaceFolder}/include",
                 "${workspaceFolder}/external/enet/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
-            "cStandard": "c17",
-            "cppStandard": "c++14",
+            "cStandard": "c23",
+            "cppStandard": "c++23",
             "intelliSenseMode": "linux-clang-x64"
         }
     ],

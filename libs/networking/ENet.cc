@@ -5,20 +5,20 @@
 
 namespace Networking {
     
-    ENetImpl::ENetImpl() {
+    Impl::ENet::ENet() {
         if(enet_initialize() != 0) {
             throw std::runtime_error("ENet: Failed to initialize.");
         }
         std::cout << "ENet: Initialized." << std::endl;
     }
 
-    ENetImpl::~ENetImpl() {
+    Impl::ENet::~ENet() {
         enet_host_destroy(host);
         enet_deinitialize();
         std::cout << "ENet: Deinitialized." << std::endl;
     }
 
-    void ENetImpl::Serve(const int port) {
+    void Impl::ENet::Serve(const int port) {
         ENetAddress address;
         address.host = ENET_HOST_ANY;
         address.port = port;
@@ -30,7 +30,7 @@ namespace Networking {
         std::cout << "ENet: Host created." << std::endl;
     }
 
-    void ENetImpl::Connect(const std::string &hostname, const int port) {
+    void Impl::ENet::Connect(const std::string &hostname, const int port) {
         host = enet_host_create(NULL, 1, 2, 57600 / 8, 14400 / 8);
         if (!host) {
             throw std::runtime_error("ENet: Failed to create host.");
@@ -49,18 +49,22 @@ namespace Networking {
         std::cout << "ENet: Connected to peer." << std::endl;
     }
 
-    void ENetImpl::Send(const Handle handle, const std::string &buffer) {
+    void Impl::ENet::Send(const Handle handle, const std::string &buffer) {
         ENetPacket *packet = enet_packet_create(buffer.c_str(), buffer.length(), ENET_PACKET_FLAG_RELIABLE);
         ENetPeer *peer = peers[handle];
         enet_peer_send(peer, 0, packet);
     }
 
-    void ENetImpl::Broadcast(const std::string &buffer) {
+    void Impl::ENet::Broadcast(const std::string &buffer) {
         ENetPacket *packet = enet_packet_create(buffer.c_str(), buffer.length(), ENET_PACKET_FLAG_RELIABLE);
         enet_host_broadcast(host, 0, packet);
     }
 
-    void ENetImpl::Listen(const std::function<void(const EVENT_TYPE, const Handle peer, const std::string &)> &callback, const bool *running) {
+    void Impl::ENet::Kick(const Handle handle) {
+        enet_peer_disconnect(peers[handle], 0);
+    }
+
+    void Impl::ENet::Listen(Callback &callback, const bool *running) {
         ENetEvent event;
         while (*running){
             while (enet_host_service(host, &event, 0) > 0) {
@@ -71,8 +75,7 @@ namespace Networking {
                 }
 
                 if(event.packet) {
-                    std::string buffer(reinterpret_cast<char*>(event.packet->data), event.packet->dataLength);
-                    callback(static_cast<EVENT_TYPE>(event.type), *(Handle*)event.peer->data, buffer);
+                    callback(static_cast<EVENT_TYPE>(event.type), *(Handle*)event.peer->data, (char*)event.packet->data);
                     enet_packet_destroy(event.packet);
                 } else callback(static_cast<EVENT_TYPE>(event.type), *(Handle*)event.peer->data, "");
 
