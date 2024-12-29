@@ -121,9 +121,13 @@ ENet: Deinitialized.
 In terms of auth flows, MMOs typically follow an authoritative gateway architecture.
 
 1- The client connects to the gateway and performs a login.
+
 2- The gateway generates a session token that is persisted temporarely in a distributed persistence layer
+
 3- The gateway returns the token to the client
+
 4- The client connects to the game server using the token provided
+
 5- The game server checks against the persistence layer if the token is valid
 
 
