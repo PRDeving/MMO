@@ -1,2 +1,3 @@
 add_subdirectory(networking)
 add_subdirectory(persistence)
+add_subdirectory(game)

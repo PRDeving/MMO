@@ -9,15 +9,9 @@ namespace Networking {
         RECEIVE = 3
     };
 
-    typedef int Handle;
-    typedef const std::function<void(
-        const EVENT_TYPE,
-        const Handle peer,
-        const char* data
-    )> Callback;
+    typedef unsigned int Handle;
 
-    template<typename T>
-    std::string Pack(T &message) {
+    std::string Pack(auto &message) {
         return std::string(reinterpret_cast<char*>(&message), sizeof(message));
     }
 }

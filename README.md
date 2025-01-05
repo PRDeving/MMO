@@ -28,7 +28,7 @@ Redis is used as a distributed session persistence layer so game servers can val
 It's the main game piece, gonna handle the game flow and it's the connection point for the clients.
 In the future I plan to introduce world-servers to implement seamless zone swapping but that gonna have to wait.
 
-- gateway-server (NodeJS)
+- gateway-server (NodeJS, dockerized)
 
 For now, a simple implementation to mock the session auth service, it's going to handle logins and game-server balancing until world servers are implemented
 
@@ -49,7 +49,7 @@ cmake ..
 make
 ```
 
-**Install NPM dependencies for the gateway sevice** (it's not connected yet tho)
+**Install NPM dependencies for the gateway sevice**
 
 ```
 cd gateway-server
@@ -63,11 +63,11 @@ Run everything, bear in mind the order!!
 ```
 docker compose up redis
 ```
-**Run the gateway** (not needed for now)
+
+**Run the gateway**
 
 ```
-cd gateway-server
-npm run start:dev
+docker compose up gateway-server
 ```
 
 **Run the other stuff**
@@ -83,50 +83,62 @@ you should have an output like this, showing the login and handshake procedure b
 ENet: Initialized.
 Hiredis: Connected to Redis server
 ENet: Host created.
-Client 1657812670 connected.
-Hiredis: GET k: 123456789, v: testuserid
-Client testuserid logged in with handle 1657812670
+Client 3493870355 connected.
+Hiredis: GET k: 9e86cace6928ebc3c7517e42a311f8d08a09a54baee9e5b45b5e4d324459759f, v: 04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb
+Client 3493870355 logged in as 04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb.
 ENet: Deinitialized.
 Hiredis: Disconnected from Redis server
 ```
 
 ```
 /workspaces/MMO/build (main) $ ./bin/client 
+cUrl: Initialized libcurl.
+cUrl: Created cUrl instance.
 ENet: Initialized.
-ENet: Connected to peer.
+ENet: Connecting to peer.
+Received token: 9e86cace6928ebc3c7517e42a311f8d08a09a54baee9e5b45b5e4d324459759f
+ from gateway
 Connected.
-Received Hello client! from server
-Disonnected.
+Synced with user 04f8996da763b7a969b1028ee3007569eaf3a635486ddab211d512c85b9df8fb
+Disconnected.
 ENet: Deinitialized.
+cUrl: Cleaned up cUrl instance.
+cUrl: Cleaned up libcurl.
 ```
 
 ### Directories
 
 **Misc**
+```
 + doc (documentation and diagrams gonna be here)
+```
 
 **Tech stuff**
+```
 + external (third party libs like sqlite or hiredis)
 + include (comon hpp for other packages)
+    + infra (holds infra abstractions for different services)
 + libs (custom libs like networking or persistence abstractions)
+```
 
 **Applications**
+```
 + game-server (game server app)
 + gateway-server (gateway app)
 + client (client app)
-
+```
 
 ### Auth Flow
 
-In terms of auth flows, MMOs typically follow an authoritative gateway architecture.
+In terms of auth flow, this project follow what is a typicall authoritative gateway architecture, pretty standard in MMOs.
 
-1- The client connects to the gateway and performs a login.
+1- The client connects to the gateway and performs a login with credentials.
 
 2- The gateway generates a session token that is persisted temporarely in a distributed persistence layer
 
-3- The gateway returns the token to the client
+3- The gateway returns the token to the client along the designated game server information
 
-4- The client connects to the game server using the token provided
+4- The client connects to the game server using the token and information provided
 
 5- The game server checks against the persistence layer if the token is valid
 
@@ -145,10 +157,27 @@ The login endpoint stores a session in redis for the game server to auth the con
 ```
 {
     "session": "fb7af8663063f55cc6f37643fdbc35980595ebe4383695a085645f7631396eaf",
-    "host": "127.0.0.1",
-    "port": 6379
+    "host": "localhost",
+    "port": 1234
 }
 ```
 
 
 ![alt text](doc/auth-flow.png)
+
+### Changelog
+
+- initial prototype for game input handling
+- game logic library and instantiation
+- message handlers
+- event-based net abstraction
+- lockless queue implementations
+- threaded networking
+- add gateway to docker-compose (why not...)
+- repository pattern to inter-service connections
+- get rid of unneded Socket abstraction
+- fixed some memory leaks
+- implemented login call from client to gateway so auth flow is complete
+- changed std:cout to printf for easy formatting
+- implemented cUrl implementation for HTTP ops
+- implemented HTTP wrapper

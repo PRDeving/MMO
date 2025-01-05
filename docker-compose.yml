@@ -8,6 +8,21 @@ services:
             - "6379:6379"
         volumes:
             - redis_data:/data
+    
+    gateway-server:
+        build:
+            context: ./gateway-server
+            dockerfile: Dockerfile
+        container_name: gateway-server
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./gateway-server/src:/app/src
+        depends_on:
+            - redis
+        environment:
+            - REDIS_HOST=redis
+            - REDIS_PORT=6379
 
 volumes:
     redis_data:

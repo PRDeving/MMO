@@ -9,4 +9,4 @@ target_include_directories(
     networking-lib PUBLIC 
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/external/enet/include>
 )
-target_link_libraries(networking-lib enet)
+target_link_libraries(networking-lib enet curl pthread)

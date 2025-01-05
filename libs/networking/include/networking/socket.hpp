@@ -1,40 +1,69 @@
 #pragma once
+#include <thread>
+#include <atomic>
+#include <future>
 #include "networking.hpp"
 
 namespace Networking {
 
-    // TODO: Implement a concept for Impl
-    // I'd really like to use C++20 concepts here, but I have to fiddle with github codespaces config first to update the compiler
-    template<typename Impl>
-    class Socket {
-        public:
-            Socket() = default;
+    namespace Socket {
+        typedef std::atomic<bool> StopToken;
+        typedef const std::function<void(
+            const EVENT_TYPE,
+            const Handle peer,
+            const char* data,
+            StopToken* listener
+        )> Callback;
 
-            void Serve(int port) {
-                impl_.Serve(port);
-            }
+        struct s_event{
+            EVENT_TYPE type;
+            Handle peer;
+            std::string data;
+        };
 
-            void Connect(const std::string &hostname, int port) {
-                impl_.Connect(hostname, port);
-            }
+        typedef std::unique_ptr<s_event> Event;
 
-            void Send(int handle, const std::string &buffer) {
-                impl_.Send(handle, buffer);
-            }
+        class Impl {
+            public:
+                virtual void Serve(int port) = 0;
+                virtual void Connect(const std::string &hostname, const int port) = 0;
+                virtual void Send(const Handle handle, const std::string &buffer) = 0;
+                virtual void Send(const std::string &buffer) = 0;
+                virtual void Broadcast(const std::string &buffer) = 0;
+                virtual void Kick(Handle handle) = 0;
+                virtual void Listen(std::function<void(Networking::Socket::Event, std::atomic<bool>*)> callback) = 0;
+        };
 
-            void Broadcast(const std::string &buffer) {
-                impl_.Broadcast(buffer);
-            }
+        // TODO: Implement a concept for this
+        // I'd really like to use C++20 concepts here, but I have to fiddle with github codespaces config first to update the compiler
+        template<typename T>
+        class Server {
+            public:
+                Server(int port) {
+                    impl_.Serve(port);
+                }
 
-            void Kick(int handle) {
-                impl_.Kick(handle);
-            }
+                void Send(const Handle handle, auto &message) {
+                    auto m = std::move(message);
+                    std::string payload = std::string(reinterpret_cast<char*>(&m), sizeof(m));
+                    impl_.Send(handle, payload);
+                }
 
-            void Listen(Callback &callback, const bool *running) {
-                impl_.Listen(callback, running);
-            }
+                void Broadcast(const std::string &buffer) {
+                    impl_.Broadcast(buffer);
+                }
 
-        private:
-            Impl impl_;
-    };
+                void Kick(int handle) {
+                    impl_.Kick(handle);
+                }
+
+                void Listen(std::function<void(Networking::Socket::Event, std::atomic<bool>*)> callback) {
+                    impl_.Listen(callback);
+                }
+
+            private:
+                T impl_;
+        };
+    }
+
 }

@@ -1,41 +1,50 @@
-#include <iostream>
-#include <string.h>
-
+#include <cstring>
+#include <optional>
 #include "networking/socket.hpp"
 #include "networking/impl/ENet.hpp"
+#include "networking/http.hpp"
+#include "networking/impl/cUrl.hpp"
 #include "messages.hpp"
 
+#include "infra/gateway-service.hpp"
+#include "infra/game-server.hpp"
+
+#include "game/game.hpp"
+
 int main() {
-    Networking::Socket<Networking::Impl::ENet> socket;
 
-    try {
-        socket.Connect("localhost", 1234);
-    } catch (std::runtime_error &e) {
-        std::cerr << e.what() << std::endl;
-        return 1;
-    }
+    Infra::GatewayService::Repository<Networking::Impl::cUrl> gateway("http://localhost:3000");
 
-    bool running = true;
-    socket.Listen([&running, &socket](const Networking::EVENT_TYPE event, const Networking::Handle peer, const char *buffer) {
-        switch (event) {
+    auto [host, port, token] = gateway.Login("user", "password").get();
+    Infra::GameServer::Repository<Networking::Impl::ENet> gameServer(host, port);
+
+    gameServer.Listen([&](Networking::Socket::Event event, Networking::Socket::StopToken *stopToken) {
+        switch (event->type) {
             case Networking::EVENT_TYPE::CONNECT: {
-                std::cout << "Connected." << std::endl;
-                
-                Networking::Messages::Handshake handshake;
-                strcpy(handshake.token, "123456789");
-                socket.Send(peer, Networking::Pack(handshake));
-
+                printf("Connected.\n");
+                gameServer.Handshake(token);
                 break;
             } case Networking::EVENT_TYPE::DISCONNECT:
-                std::cout << "Disonnected." << std::endl;
-                running = false;
+                printf("Disconnected.\n");
+                stopToken->store(true);
                 break;
             case Networking::EVENT_TYPE::RECEIVE:
-                std::cout << "Received " << buffer << " from server" << std::endl;
+                if (event->data.empty()) break;
+
+                auto type = static_cast<Networking::Messages::MESSAGE_TYPE>(*event->data.c_str());
+                switch(type) {
+                    case Networking::Messages::MESSAGE_TYPE::SYNC: {
+                        auto sync = reinterpret_cast<const Networking::Messages::Sync*>(event->data.c_str());
+                        printf("Synced with user %s\n", sync->user);
+
+                        // Send player input
+                        auto input = Networking::Messages::PlayerInput(Game::Player(1337), (unsigned int)0x1);
+                        gameServer.PlayerInput(input);
+                    }
+                }
                 break;
         }
-
-    }, &running);
+    });
 
     return 0;
 }  

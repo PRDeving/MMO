@@ -5,7 +5,8 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/include",
-                "${workspaceFolder}/external/enet/include"
+                "${workspaceFolder}/external/enet/include",
+                "${workspaceFolder}/external/json/include"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

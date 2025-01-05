@@ -3,9 +3,11 @@ import bodyParser from 'body-parser'
 import { createClient } from 'redis'
 import sha256 from 'sha256'
 
-const redis = await createClient()
+const redis = await createClient({
+    url: `redis://${process.env.REDIS_HOST}:${process.env.REDIS_PORT}`
+})
   .on('error', err => console.log('Redis Client Error', err))
-  .connect();
+  .connect()
 
 const app = express()
 app.use(bodyParser.json())
@@ -25,8 +27,8 @@ app.post('/login', async (req, res) => {
         await redis.set(session, USER_ID)
         res.send({
             session,
-            host: "127.0.0.1",
-            port: 6379
+            host: "localhost",
+            port: 1234
         })
     } else {
         res.status(401).send('Unauthorized')
